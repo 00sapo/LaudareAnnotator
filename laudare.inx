@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Laudare Extension</name>
+  <id>org.inkscape.output.laudare</id>
+  <output>
+    <extension>.json</extension>
+    <mimetype>application/json</mimetype>
+    <filetypename>Laudare JSON (*.json)</filetypename>
+    <filetypetooltip>Laudare custom annotation format in JSON</filetypetooltip>
+  </output>
+  <script>
+    <command location="inx" interpreter="python">laudare.py</command>
+  </script>
+</inkscape-extension>
