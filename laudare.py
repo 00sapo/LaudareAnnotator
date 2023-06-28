@@ -27,7 +27,7 @@ def _json_file_chooser(title, action, window):
 
 def _check_association_labels(associations):
     labels = set()
-    for label, _, _ in associations:
+    for label, _, _ in associations.values():
         value = label.get_buffer().get_text()
         if value in labels:
             raise RuntimeError(f"Duplicate label: {value}")
@@ -86,7 +86,7 @@ logging.basicConfig(
 class LaudareExtension(inkex.extensions.OutputExtension):
     def __init__(self) -> None:
         super().__init__()
-        self.association_widgets = []
+        self.association_widgets = {}
         self.combovalues = ["Path", "Text", "Rectangle", "Circle"]
 
     def save(self, stream):
@@ -139,7 +139,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
     def add_association_widgets(self, button):
         """Adds widgets for defining a new association"""
 
-        # Create a horizontal box to hold the text box, dropdown menu and color gui
+        # Create a horizontal box to hold the text box, dropdown menu, color gui, and remove button
         hbox = Gtk.HBox()
         self.vbox.pack_start(hbox, True, True, 0)
 
@@ -160,8 +160,23 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         color_button.add_palette(Gtk.Orientation.HORIZONTAL, 5, svg_palette)
         hbox.pack_start(color_button, True, True, 0)
 
-        self.association_widgets.append((label_entry, type_combo, color_button))
+        # Create a remove button and add it to the horizontal box
+        id = len(self.association_widgets)
+        remove_button = Gtk.Button(label="X")
+        remove_button.connect(
+            "clicked", self._remove_association, hbox, id
+        )
+        hbox.pack_start(remove_button, True, True, 0)
+
+        self.association_widgets[id] = (label_entry, type_combo, color_button)
         self.vbox.show_all()
+
+    def _remove_association(self, button, hbox, id):
+        """Removes the specified association"""
+        self.vbox.remove(hbox)
+        del self.association_widgets[id]
+        self.vbox.show_all()
+        self.window.show_all()
 
     def _load_association_dict(self, associations):
         missing_widgets = len(associations) - len(self.association_widgets)
@@ -172,16 +187,21 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
         for i, (label, values) in enumerate(associations.items()):
             widgets = self.association_widgets[i]
-            widgets[0].get_buffer().set_text(label, len(label))
-            widgets[1].set_active(self.combovalues.index(values[0]))
+            widgets[0].get_buffer().set_text(label, len(label))  # the label
+            if values[0] is None:
+                widgets[1].set_active(-1)
+            else:
+                widgets[1].set_active(
+                    self.combovalues.index(values[0])
+                )  # the type of sign (rect, circle, path, text...)
             color = Gdk.RGBA()
-            color.parse(values[1])
+            color.parse(values[1])  # the color
             widgets[2].set_rgba(color)
 
     def _get_association_dict(self):
         out = {}
         _check_association_labels(self.association_widgets)
-        for entry, combotext, colorbutton in self.association_widgets:
+        for entry, combotext, colorbutton in self.association_widgets.values():
             out[entry.get_buffer().get_text()] = [
                 combotext.get_active_text(),
                 colorbutton.get_rgba().to_string(),
