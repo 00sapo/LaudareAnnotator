@@ -59,28 +59,37 @@ def _get_cache_dir():
     return cache_path
 
 
-def _get_node_style(node):
+def _get_node_color(node, name="fill"):
+    """Returns the RGB color, without opacity levels. `None` if it is not set."""
     style_str = node.attrib.get("style", None)
     if style_str is None:
         return None
-    style = inkex.Style(style_str)
-    return style
+    style = dict(inkex.Style.parse_str(style_str))
+    color = style.get(name)
+    if color == 'none':
+        return None
+    # check that this element really contains something
+    if isinstance(node, inkex.TextElement):
+        if node.get_text().replace(' ', '').replace('\t', '') != "":
+            return color
+    elif isinstance(node, inkex.ShapeElement):
+        bbox = node.bounding_box()
+        if bbox is not None and bbox.area > 0:
+            return color
+    return None
 
 
 def _get_svg_colors(svg):
     """Returns all colors from an SVG object as a set of Gdk.RGBA objects"""
-    colors = {"rgb(0, 0, 0)"}
+    colors = set()
     for node in svg.descendants():
-        style = _get_node_style(node)
-        if style is None:
-            continue
-        stroke = style.get_color("stroke")
-        if stroke not in colors:
-            colors.add(str(stroke))
+        stroke = _get_node_color(node, "stroke")
+        if stroke not in colors and stroke is not None:
+            colors.add(stroke)
 
-        fill = style.get_color("fill")
-        if fill not in colors:
-            colors.add(str(fill))
+        fill = _get_node_color(node, "fill")
+        if fill not in colors and fill is not None:
+            colors.add(fill)
 
     ret = []
     for color in colors:
@@ -273,9 +282,9 @@ class LaudareExtension(inkex.extensions.OutputExtension):
     def save_laudare(self, button):
         """Export the SVG file itself into the JSON file, using the associations defined
         by the widgets and destroy the window"""
-        self.json_data = {}
+        json_data = {}
         all_elements = self.svg.descendants()
-        for label, obj, color, isgroup in self._get_association_dict().values():
+        for label, (obj, color, isgroup) in self._get_association_dict().items():
             # get all elements of type obj
             inkex_class = self.object_types[obj]
             obj_elements = all_elements.get(inkex_class)
@@ -285,17 +294,17 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             for node in obj_elements:
                 style = _get_node_style(node)
                 if style is not None and (
-                    style.get_color("fill") == "color"
-                    or style.get_color("stroke") == "color"
+                    str(style.get_color("fill")) == color
+                    or str(style.get_color("stroke")) == color
                 ):
                     obj_elements_color.append(node)
 
-            self.json_data[label] = {}
+            json_data[label] = {}
             if not isgroup:
                 # add the element to the json data
                 for node in obj_elements_color:
                     bbox = node.bounding_box()
-                    self.json_data[label][node.get_id()] = (
+                    json_data[label][node.get_id()] = (
                         bbox.top,
                         bbox.left,
                         bbox.bottom,
@@ -305,6 +314,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                 # TODO
                 pass
 
+        print(json_data)
         self.stop()
 
     def start(self):
@@ -334,5 +344,5 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
 
 if __name__ == "__main__":
-    __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
+    # __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
     LaudareExtension().run()
