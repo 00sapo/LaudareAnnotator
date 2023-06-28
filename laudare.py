@@ -50,6 +50,30 @@ def _get_cache_dir():
     return cache_path
 
 
+def _get_svg_colors(svg):
+    """Returns all colors from an SVG object as a set of Gdk.RGBA objects"""
+    colors = {"rgb(0, 0, 0)"}
+    for node in svg.descendants():
+        style_str = node.attrib.get("style", None)
+        if style_str is None:
+            continue
+        style = inkex.Style(style_str)
+        stroke = style.get_color("stroke")
+        if stroke not in colors:
+            colors.add(str(stroke))
+
+        fill = style.get_color("fill")
+        if fill not in colors:
+            colors.add(str(fill))
+
+    ret = []
+    for color in colors:
+        gdk_color = Gdk.RGBA()
+        gdk_color.parse(color)
+        ret.append(gdk_color)
+    return ret
+
+
 log_file_path = _get_cache_dir() / f"laudare_annotator.log"
 logging.basicConfig(
     filename=log_file_path,
@@ -132,6 +156,8 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
         # Create a color gui and add it to the horizontal box
         color_button = Gtk.ColorButton()
+        svg_palette = _get_svg_colors(self.svg)
+        color_button.add_palette(Gtk.Orientation.HORIZONTAL, 5, svg_palette)
         hbox.pack_start(color_button, True, True, 0)
 
         self.association_widgets.append((label_entry, type_combo, color_button))
@@ -227,4 +253,5 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
 
 if __name__ == "__main__":
+    __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
     LaudareExtension().run()
