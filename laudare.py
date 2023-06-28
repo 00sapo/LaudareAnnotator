@@ -59,14 +59,21 @@ def _get_cache_dir():
     return cache_path
 
 
+def _get_node_style(node):
+    style_str = node.attrib.get("style", None)
+    if style_str is None:
+        return None
+    style = inkex.Style(style_str)
+    return style
+
+
 def _get_svg_colors(svg):
     """Returns all colors from an SVG object as a set of Gdk.RGBA objects"""
     colors = {"rgb(0, 0, 0)"}
     for node in svg.descendants():
-        style_str = node.attrib.get("style", None)
-        if style_str is None:
+        style = _get_node_style(node)
+        if style is None:
             continue
-        style = inkex.Style(style_str)
         stroke = style.get_color("stroke")
         if stroke not in colors:
             colors.add(str(stroke))
@@ -96,7 +103,16 @@ class LaudareExtension(inkex.extensions.OutputExtension):
     def __init__(self) -> None:
         super().__init__()
         self.association_widgets = {}
-        self.combovalues = ["Path", "Text", "Rectangle", "Circle"]
+        self.object_types = {
+            "Path": inkex.PathElement,
+            "Text": inkex.TextElement,
+            "Polygon": inkex.Polygon,
+            "Ellipse": inkex.Ellipse,
+        }
+
+    @property
+    def combovalues(self):
+        return sorted(self.object_types.keys())
 
     def save(self, stream):
         """
@@ -257,6 +273,38 @@ class LaudareExtension(inkex.extensions.OutputExtension):
     def save_laudare(self, button):
         """Export the SVG file itself into the JSON file, using the associations defined
         by the widgets and destroy the window"""
+        self.json_data = {}
+        all_elements = self.svg.descendants()
+        for label, obj, color, isgroup in self._get_association_dict().values():
+            # get all elements of type obj
+            inkex_class = self.object_types[obj]
+            obj_elements = all_elements.get(inkex_class)
+
+            # get only elements with this color in stroke *or* fill
+            obj_elements_color = []
+            for node in obj_elements:
+                style = _get_node_style(node)
+                if style is not None and (
+                    style.get_color("fill") == "color"
+                    or style.get_color("stroke") == "color"
+                ):
+                    obj_elements_color.append(node)
+
+            self.json_data[label] = {}
+            if not isgroup:
+                # add the element to the json data
+                for node in obj_elements_color:
+                    bbox = node.bounding_box()
+                    self.json_data[label][node.get_id()] = (
+                        bbox.top,
+                        bbox.left,
+                        bbox.bottom,
+                        bbox.right,
+                    )
+            else:
+                # TODO
+                pass
+
         self.stop()
 
     def start(self):
