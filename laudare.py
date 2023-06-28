@@ -27,12 +27,21 @@ def _json_file_chooser(title, action, window):
 
 def _check_association_labels(associations):
     labels = set()
-    for label, _, _ in associations.values():
+    combinations = set()
+    for label, obj, color, isgroup in associations.values():
         value = label.get_buffer().get_text()
-        if value in labels:
-            raise RuntimeError(f"Duplicate label: {value}")
+        combination = (
+            obj.get_active_text(),
+            color.get_rgba().to_string(),
+            isgroup.get_active(),
+        )
+        if value in labels or combination in combinations:
+            raise RuntimeError(
+                f"Duplicate label or combination: {value}, {combination}"
+            )
         else:
             labels.add(value)
+            combinations.add(combination)
 
 
 def _get_cache_dir():
@@ -139,13 +148,16 @@ class LaudareExtension(inkex.extensions.OutputExtension):
     def add_association_widgets(self, button):
         """Adds widgets for defining a new association"""
 
-        # Create a horizontal box to hold the text box, dropdown menu, color gui, and remove button
+        # Create a horizontal box to hold the text box, dropdown menu, color gui, remove
+        # button, and checkbox
         hbox = Gtk.HBox()
         self.vbox.pack_start(hbox, True, True, 0)
+        id = len(self.association_widgets)
+        hbox.id = id
 
         # Create a text box and add it to the horizontal box
         label_entry = Gtk.Entry()
-        label_entry.set_text(f"Label {len(self.association_widgets)}")
+        label_entry.set_text(f"Label {id}")
         hbox.pack_start(label_entry, True, True, 0)
 
         # Create a dropdown menu and add it to the horizontal box
@@ -161,14 +173,15 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         hbox.pack_start(color_button, True, True, 0)
 
         # Create a remove button and add it to the horizontal box
-        id = len(self.association_widgets)
         remove_button = Gtk.Button(label="X")
-        remove_button.connect(
-            "clicked", self._remove_association, hbox, id
-        )
+        remove_button.connect("clicked", self._remove_association, hbox, id)
         hbox.pack_start(remove_button, True, True, 0)
 
-        self.association_widgets[id] = (label_entry, type_combo, color_button)
+        # Create a checkbox for referring to groups of objects only
+        checkbox = Gtk.CheckButton(label="Groups Only")
+        hbox.pack_start(checkbox, True, True, 0)
+
+        self.association_widgets[id] = (label_entry, type_combo, color_button, checkbox)
         self.vbox.show_all()
 
     def _remove_association(self, button, hbox, id):
@@ -197,14 +210,21 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             color = Gdk.RGBA()
             color.parse(values[1])  # the color
             widgets[2].set_rgba(color)
+            widgets[3].set_active(values[2])  # if groups-only
 
     def _get_association_dict(self):
         out = {}
         _check_association_labels(self.association_widgets)
-        for entry, combotext, colorbutton in self.association_widgets.values():
+        for (
+            entry,
+            combotext,
+            colorbutton,
+            checkbox,
+        ) in self.association_widgets.values():
             out[entry.get_buffer().get_text()] = [
                 combotext.get_active_text(),
                 colorbutton.get_rgba().to_string(),
+                checkbox.get_active(),
             ]
         return out
 
@@ -241,34 +261,27 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
     def start(self):
         """Load the main window and the annotation from the cache"""
-        debug("start")
         self._load_gui()
-        debug("gui loaded")
-        with open(_get_cache_dir() / "associations.json", "r") as f:
-            associations = json.load(f)
-        debug("loaded associations: " + str(associations))
-        self._load_association_dict(associations)
-        debug("associations loaded into the gui")
+        fpath = _get_cache_dir() / "associations.json"
+        if fpath.exists():
+            with open(fpath, "r") as f:
+                associations = json.load(f)
+                self._load_association_dict(associations)
         # Run the GTK main loop
         Gtk.main()
-        debug("starting gui")
 
     def stop(self, trigger=None):
         """
         Save the annotation config to cache and close the main window.
         """
-        debug("stop")
         # Save the config to a file in the cache directory
         associations = self._get_association_dict()
-        debug("got association dict")
         with open(_get_cache_dir() / "associations.json", "w") as f:
             json.dump(associations, f)
-            debug("saved association dict: " + str(associations))
 
         # Close the main window
         if trigger is None:
             trigger = self.window
-        debug("quitting now...")
         Gtk.main_quit(trigger)
 
 
