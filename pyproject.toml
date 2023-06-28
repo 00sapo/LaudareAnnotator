@@ -1,0 +1,13 @@
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "Federico Simonetta", email = "federico.simonetta@gssi.it"},
+]
+dependencies = [
+    "inkex>=1.0.1",
+    "PyGObject>=3.42.2",
+]
+requires-python = ">=3.6"
+license = {text = "MIT"}
