@@ -178,7 +178,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         hbox.pack_start(remove_button, True, True, 0)
 
         # Create a checkbox for referring to groups of objects only
-        checkbox = Gtk.CheckButton(label="Groups Only")
+        checkbox = Gtk.CheckButton(label="Groups Label")
         hbox.pack_start(checkbox, True, True, 0)
 
         self.association_widgets[id] = (label_entry, type_combo, color_button, checkbox)
