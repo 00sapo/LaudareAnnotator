@@ -1,12 +1,13 @@
 import json
+import threading
+import time
 
 import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gtk
-
 import utils
+from gi.repository import Gdk, Gtk
 
 
 def _colors_to_gdk(colors):
@@ -56,33 +57,52 @@ class MainGui:
 
         # Create a label and add it to the vertical box
         label = Gtk.Label(label="Define your own associations")
-        self.vbox.pack_start(label, True, True, 0)
+        self.vbox.pack_start(label, True, True, 2)
 
         # Create a button and add it to the vertical box
         add_button = Gtk.Button(label="Add Association")
-        self.vbox.pack_start(add_button, True, True, 0)
+        self.vbox.pack_start(add_button, True, True, 2)
         # Connect the button to a function that adds a new HBox when pressed
         add_button.connect("clicked", self._add_association_widgets)
 
         # Add a button for exporting the associations
         export_button = Gtk.Button(label="Export Associations")
-        self.vbox.pack_start(export_button, True, True, 0)
+        self.vbox.pack_start(export_button, True, True, 2)
         export_button.connect("clicked", self.save_config)
 
         # Add a button for importing the associations
         export_button = Gtk.Button(label="Import Associations")
-        self.vbox.pack_start(export_button, True, True, 0)
+        self.vbox.pack_start(export_button, True, True, 2)
         export_button.connect("clicked", self.load_config)
 
         # Add a button for saving the annotation file
-        save_button = Gtk.Button(label="Save")
-        self.vbox.pack_start(save_button, True, True, 0)
-        save_button.connect("clicked", self.action_func)
+        save_button = Gtk.Button(label=self.action_label)
+        self.vbox.pack_start(save_button, True, True, 2)
+        save_button.connect("clicked", self._run_action_func)
 
         # Show all widgets
         self.window.show_all()
 
         self.window.connect("destroy", self.stop)
+
+    def _run_action_func(self, button):
+        # Add a progress bar with unknown duration
+        spinner = Gtk.Spinner()
+        button.set_label("Working...")
+        button.spinner = spinner
+        self.vbox.pack_start(spinner, True, True, 5)
+        self.vbox.show_all()
+        spinner.start()
+        thread = threading.Thread(
+            target=self.action_func,
+            kwargs=dict(callback=self._stop_action_func, args=(button,)),
+        )
+        thread.start()
+
+    def _stop_action_func(self, button):
+        button.set_label(self.action_label)
+        button.spinner.stop()
+        self.window.show_all()
 
     def _add_association_widgets(self, button):
         """Adds widgets for defining a new association"""
@@ -90,7 +110,7 @@ class MainGui:
         # Create a horizontal box to hold the text box, dropdown menu, color gui, remove
         # button, and checkbox
         hbox = Gtk.HBox()
-        self.vbox.pack_start(hbox, True, True, 0)
+        self.vbox.pack_start(hbox, True, True, 3)
         id = len(self.association_widgets)
         hbox.id = id
 
