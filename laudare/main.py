@@ -7,8 +7,6 @@ import gui
 import inkex
 import utils
 
-from gi.repository import GLib
-
 
 def to_px(value, unit):
     if unit != "px":
@@ -17,14 +15,28 @@ def to_px(value, unit):
         return value
 
 
-def node_to_annotation(node, children=[]):
+def bake_transforms_recursively(group, apply_to_paths=True):
+    """
+    Back-ported from inkex >= 1.4
+    """
+    for element in group:
+        if isinstance(element, inkex.PathElement) and apply_to_paths:
+            element.path = element.path.transform(group.transform)
+        else:
+            element.transform = group.transform @ element.transform
+            if isinstance(element, inkex.elements._groups.GroupBase):
+                bake_transforms_recursively(element, apply_to_paths)
+    group.transform = None
+
+
+def node_to_annotation(node, children=[], relative_to=(0, 0)):
     if node.tag_name == "text":
         bbox = node.get_inkscape_bbox()  # slow, this is calling inkscape command!
     else:
         bbox = node.bounding_box()
     return {
-        "x": to_px(bbox.left, node.unit),
-        "y": to_px(bbox.top, node.unit),
+        "x": to_px(bbox.left - relative_to[0], node.unit),
+        "y": to_px(bbox.top - relative_to[1], node.unit),
         "w": to_px(bbox.width, node.unit),
         "h": to_px(bbox.height, node.unit),
         "text": node.get_text() if node.tag_name == "text" else None,
@@ -54,7 +66,12 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         by the widgets and destroy the window"""
         json_data = {}
         all_elements = self.svg.descendants()
+
         all_groups = all_elements.get(inkex.Group)
+        for g in all_groups:
+            # apply transforms to lement, and remove them from groups
+            bake_transforms_recursively(g)
+
         image = all_elements.get(inkex.Image)
         if len(image) > 1:
             raise RuntimeError("SVG has multiple images, not supported")
@@ -62,12 +79,31 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             raise RuntimeError("SVG has no image, not supported")
         else:
             image = image[0]
+        # compute the size of the image, considering transforms
+        image_bbox = image.bounding_box()
+        self._image_x = image_bbox.left
+        self._image_y = image_bbox.top
+
+        unit = self.svg.unit
+        # inserting metadata
         json_data["info"] = {
             "unit": "px",
-            "image": (image.top, image.left, image.width, image.height),
             "date": datetime.datetime.now().isoformat(),
             "author": getpass.getuser(),
+            "image": {
+                "position": (
+                    to_px(image_bbox.left, unit),
+                    to_px(image_bbox.top, unit),
+                    to_px(image_bbox.width, unit),
+                    to_px(image_bbox.height, unit),
+                ),
+                "href": next(
+                    v for k, v in image.attrib.items() if k.endswith("href")
+                ),  # href may be preceeded by {...} # this can be base4 binary encoding!
+            },
         }
+
+        # inserting annotations
         json_data["annotations"] = {}
         for label, (obj, color, isgroup) in self.gui.get_rule_dict().items():
             # get all elements of type obj
@@ -88,7 +124,11 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                 # add the element to the json data
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures = [
-                        executor.submit(node_to_annotation, node)
+                        executor.submit(
+                            node_to_annotation,
+                            node,
+                            relative_to=(self._image_x, self._image_y),
+                        )
                         for node in obj_elements_color
                     ]
                     for i, future in enumerate(
@@ -111,7 +151,11 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                     if len(grouped_nodes) > 1:
                         json_data["annotations"][label][
                             group.get_id()
-                        ] = node_to_annotation(group, children=grouped_nodes)
+                        ] = node_to_annotation(
+                            group,
+                            children=grouped_nodes,
+                            relative_to=(self._image_x, self._image_y),
+                        )
         pprint(json_data)
         if callback is not None:
             callback(*args)
