@@ -6,10 +6,10 @@ from typing import Optional
 import inkex
 
 SUPPORTED_TYPES = {
-    "Path": inkex.PathElement,
     "Text": inkex.TextElement,
-    "Polygon": inkex.Polygon,
+    "Path": inkex.PathElement,
     "Ellipse": inkex.Ellipse,
+    "Rectangle": inkex.Rectangle,
 }
 
 
