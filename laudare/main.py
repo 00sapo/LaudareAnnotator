@@ -23,8 +23,8 @@ def node_to_annotation(node, children=[]):
     else:
         bbox = node.bounding_box()
     return {
-        "x": to_px(bbox.top, node.unit),
-        "y": to_px(bbox.left, node.unit),
+        "x": to_px(bbox.left, node.unit),
+        "y": to_px(bbox.top, node.unit),
         "w": to_px(bbox.width, node.unit),
         "h": to_px(bbox.height, node.unit),
         "text": node.get_text() if node.tag_name == "text" else None,
