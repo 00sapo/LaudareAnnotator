@@ -1,13 +1,18 @@
 [project]
-name = ""
-version = ""
-description = ""
+name = "laudareannotator"
+version = "0.1"
+description = "An Inkscape extension to annotate images for computer-vision tasks"
 authors = [
     {name = "Federico Simonetta", email = "federico.simonetta@gssi.it"},
 ]
 dependencies = [
-    "inkex>=1.0.1",
+    "inkex>=1.2",
     "PyGObject>=3.42.2",
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 license = {text = "MIT"}
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "snoop>=0.4.3",
+]

@@ -1,16 +1,23 @@
-#!/usr/bin/env python
 import json
-import logging
-import platform
-from logging import debug, error, info, warn
-from pathlib import Path
 
 import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-import inkex
 from gi.repository import Gdk, Gtk
+
+import utils
+
+
+def _colors_to_gdk(colors):
+    """Takes in a CSS color string iterable and returns a gdk.RGBA color list"""
+
+    ret = []
+    for color in colors:
+        gdk_color = Gdk.RGBA()
+        gdk_color.parse(color)
+        ret.append(gdk_color)
+    return ret
 
 
 def _json_file_chooser(title, action, window):
@@ -25,109 +32,16 @@ def _json_file_chooser(title, action, window):
     return response, file_path
 
 
-def _check_association_labels(associations):
-    labels = set()
-    combinations = set()
-    for label, obj, color, isgroup in associations.values():
-        value = label.get_buffer().get_text()
-        combination = (
-            obj.get_active_text(),
-            color.get_rgba().to_string(),
-            isgroup.get_active(),
-        )
-        if value in labels or combination in combinations:
-            raise RuntimeError(
-                f"Duplicate label or combination: {value}, {combination}"
-            )
-        else:
-            labels.add(value)
-            combinations.add(combination)
-
-
-def _get_cache_dir():
-    """Compute the cache directory according to the OS and returns it"""
-
-    if platform.system() == "Windows":
-        cache_directory = Path.home() / "AppData" / "Local" / "cache"
-    elif platform.system() == "Darwin":
-        cache_directory = Path.home() / "Library" / "Caches"
-    else:
-        cache_directory = Path.home() / ".cache"
-    # Create the directory if it doesn't exist
-    cache_path = cache_directory / "inkscape" / "laudare_annotator_cache"
-    cache_path.mkdir(parents=True, exist_ok=True)
-    return cache_path
-
-
-def _get_node_color(node, name="fill"):
-    """Returns the RGB color, without opacity levels. `None` if it is not set."""
-    style_str = node.attrib.get("style", None)
-    if style_str is None:
-        return None
-    style = dict(inkex.Style.parse_str(style_str))
-    color = style.get(name)
-    if color == 'none':
-        return None
-    # check that this element really contains something
-    if isinstance(node, inkex.TextElement):
-        if node.get_text().replace(' ', '').replace('\t', '') != "":
-            return color
-    elif isinstance(node, inkex.ShapeElement):
-        bbox = node.bounding_box()
-        if bbox is not None and bbox.area > 0:
-            return color
-    return None
-
-
-def _get_svg_colors(svg):
-    """Returns all colors from an SVG object as a set of Gdk.RGBA objects"""
-    colors = set()
-    for node in svg.descendants():
-        stroke = _get_node_color(node, "stroke")
-        if stroke not in colors and stroke is not None:
-            colors.add(stroke)
-
-        fill = _get_node_color(node, "fill")
-        if fill not in colors and fill is not None:
-            colors.add(fill)
-
-    ret = []
-    for color in colors:
-        gdk_color = Gdk.RGBA()
-        gdk_color.parse(color)
-        ret.append(gdk_color)
-    return ret
-
-
-log_file_path = _get_cache_dir() / f"laudare_annotator.log"
-logging.basicConfig(
-    filename=log_file_path,
-    level=logging.DEBUG,
-    filemode="a",
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-
-
-class LaudareExtension(inkex.extensions.OutputExtension):
-    def __init__(self) -> None:
-        super().__init__()
+class MainGui:
+    def __init__(self, action_func, action_label, combovalues):
         self.association_widgets = {}
-        self.object_types = {
-            "Path": inkex.PathElement,
-            "Text": inkex.TextElement,
-            "Polygon": inkex.Polygon,
-            "Ellipse": inkex.Ellipse,
-        }
+        self.action_func = action_func
+        self.action_label = action_label
+        self.combovalues = combovalues
 
-    @property
-    def combovalues(self):
-        return sorted(self.object_types.keys())
-
-    def save(self, stream):
-        """
-        Methods run when the user clicks on "Save"
-        """
-        self.start()
+    def set_palette(self, palette):
+        self.palette = _colors_to_gdk(palette)
+        return self
 
     def _load_gui(self):
         """Load the main gui for defining the associations"""
@@ -148,7 +62,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         add_button = Gtk.Button(label="Add Association")
         self.vbox.pack_start(add_button, True, True, 0)
         # Connect the button to a function that adds a new HBox when pressed
-        add_button.connect("clicked", self.add_association_widgets)
+        add_button.connect("clicked", self._add_association_widgets)
 
         # Add a button for exporting the associations
         export_button = Gtk.Button(label="Export Associations")
@@ -163,14 +77,14 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         # Add a button for saving the annotation file
         save_button = Gtk.Button(label="Save")
         self.vbox.pack_start(save_button, True, True, 0)
-        save_button.connect("clicked", self.save_laudare)
+        save_button.connect("clicked", self.action_func)
 
         # Show all widgets
         self.window.show_all()
 
         self.window.connect("destroy", self.stop)
 
-    def add_association_widgets(self, button):
+    def _add_association_widgets(self, button):
         """Adds widgets for defining a new association"""
 
         # Create a horizontal box to hold the text box, dropdown menu, color gui, remove
@@ -193,8 +107,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
         # Create a color gui and add it to the horizontal box
         color_button = Gtk.ColorButton()
-        svg_palette = _get_svg_colors(self.svg)
-        color_button.add_palette(Gtk.Orientation.HORIZONTAL, 5, svg_palette)
+        color_button.add_palette(Gtk.Orientation.HORIZONTAL, 5, self.palette)
         hbox.pack_start(color_button, True, True, 0)
 
         # Create a remove button and add it to the horizontal box
@@ -221,7 +134,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         if missing_widgets > 0:
             # add more widgets
             for _ in range(missing_widgets):
-                self.add_association_widgets(None)
+                self._add_association_widgets(None)
 
         for i, (label, values) in enumerate(associations.items()):
             widgets = self.association_widgets[i]
@@ -237,9 +150,9 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             widgets[2].set_rgba(color)
             widgets[3].set_active(values[2])  # if groups-only
 
-    def _get_association_dict(self):
+    def get_association_dict(self):
         out = {}
-        _check_association_labels(self.association_widgets)
+        utils.check_association_labels(self.association_widgets)
         for (
             entry,
             combotext,
@@ -248,7 +161,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         ) in self.association_widgets.values():
             out[entry.get_buffer().get_text()] = [
                 combotext.get_active_text(),
-                colorbutton.get_rgba().to_string(),
+                utils.color_string_to_rgb(colorbutton.get_rgba().to_string()),
                 checkbox.get_active(),
             ]
         return out
@@ -268,7 +181,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
     def save_config(self, button):
         """Open a window to save the associations into a JSON file"""
-        out = self._get_association_dict()
+        out = self.get_association_dict()
 
         # Let the user chose a filename using Gtk.FileChooserNative
         response, file_path = _json_file_chooser(
@@ -279,48 +192,10 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             with open(file_path, "w") as f:
                 json.dump(out, f)
 
-    def save_laudare(self, button):
-        """Export the SVG file itself into the JSON file, using the associations defined
-        by the widgets and destroy the window"""
-        json_data = {}
-        all_elements = self.svg.descendants()
-        for label, (obj, color, isgroup) in self._get_association_dict().items():
-            # get all elements of type obj
-            inkex_class = self.object_types[obj]
-            obj_elements = all_elements.get(inkex_class)
-
-            # get only elements with this color in stroke *or* fill
-            obj_elements_color = []
-            for node in obj_elements:
-                style = _get_node_style(node)
-                if style is not None and (
-                    str(style.get_color("fill")) == color
-                    or str(style.get_color("stroke")) == color
-                ):
-                    obj_elements_color.append(node)
-
-            json_data[label] = {}
-            if not isgroup:
-                # add the element to the json data
-                for node in obj_elements_color:
-                    bbox = node.bounding_box()
-                    json_data[label][node.get_id()] = (
-                        bbox.top,
-                        bbox.left,
-                        bbox.bottom,
-                        bbox.right,
-                    )
-            else:
-                # TODO
-                pass
-
-        print(json_data)
-        self.stop()
-
     def start(self):
         """Load the main window and the annotation from the cache"""
         self._load_gui()
-        fpath = _get_cache_dir() / "associations.json"
+        fpath = utils.get_cache_dir() / "associations.json"
         if fpath.exists():
             with open(fpath, "r") as f:
                 associations = json.load(f)
@@ -333,16 +208,11 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         Save the annotation config to cache and close the main window.
         """
         # Save the config to a file in the cache directory
-        associations = self._get_association_dict()
-        with open(_get_cache_dir() / "associations.json", "w") as f:
+        associations = self.get_association_dict()
+        with open(utils.get_cache_dir() / "associations.json", "w") as f:
             json.dump(associations, f)
 
         # Close the main window
         if trigger is None:
             trigger = self.window
         Gtk.main_quit(trigger)
-
-
-if __name__ == "__main__":
-    # __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
-    LaudareExtension().run()

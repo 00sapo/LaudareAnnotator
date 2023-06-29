@@ -9,6 +9,6 @@
     <filetypetooltip>Laudare custom annotation format in JSON</filetypetooltip>
   </output>
   <script>
-    <command location="inx" interpreter="python">laudare.py</command>
+    <command location="inx" interpreter="python">laudare/main.py</command>
   </script>
 </inkscape-extension>
