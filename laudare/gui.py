@@ -35,7 +35,7 @@ def _json_file_chooser(title, action, window):
 
 class MainGui:
     def __init__(self, action_func, action_label, combovalues):
-        self.association_widgets = {}
+        self.rule_widgets = {}
         self.action_func = action_func
         self.action_label = action_label
         self.combovalues = combovalues
@@ -45,9 +45,9 @@ class MainGui:
         return self
 
     def _load_gui(self):
-        """Load the main gui for defining the associations"""
-        # Start a GTK window with written "Define your own associations" and a button '+'
-        self.window = Gtk.Window(title="Define your own associations")
+        """Load the main gui for defining the rules"""
+        # Start a GTK window with written "Define your own rules" and a button '+'
+        self.window = Gtk.Window(title="Define your own rules")
         self.window.set_border_width(10)
         self.window.set_position(Gtk.WindowPosition.CENTER)
 
@@ -56,22 +56,22 @@ class MainGui:
         self.window.add(self.vbox)
 
         # Create a label and add it to the vertical box
-        label = Gtk.Label(label="Define your own associations")
+        label = Gtk.Label(label="Define your own rules")
         self.vbox.pack_start(label, True, True, 2)
 
         # Create a button and add it to the vertical box
-        add_button = Gtk.Button(label="Add Association")
+        add_button = Gtk.Button(label="Add Rule")
         self.vbox.pack_start(add_button, True, True, 2)
         # Connect the button to a function that adds a new HBox when pressed
-        add_button.connect("clicked", self._add_association_widgets)
+        add_button.connect("clicked", self._add_rule_widgets)
 
-        # Add a button for exporting the associations
-        export_button = Gtk.Button(label="Export Associations")
+        # Add a button for exporting the rules
+        export_button = Gtk.Button(label="Export Rules")
         self.vbox.pack_start(export_button, True, True, 2)
         export_button.connect("clicked", self.save_config)
 
-        # Add a button for importing the associations
-        export_button = Gtk.Button(label="Import Associations")
+        # Add a button for importing the rules
+        export_button = Gtk.Button(label="Import Rules")
         self.vbox.pack_start(export_button, True, True, 2)
         export_button.connect("clicked", self.load_config)
 
@@ -104,14 +104,14 @@ class MainGui:
         button.spinner.stop()
         self.window.show_all()
 
-    def _add_association_widgets(self, button):
-        """Adds widgets for defining a new association"""
+    def _add_rule_widgets(self, button):
+        """Adds widgets for defining a new rule"""
 
         # Create a horizontal box to hold the text box, dropdown menu, color gui, remove
         # button, and checkbox
         hbox = Gtk.HBox()
         self.vbox.pack_start(hbox, True, True, 3)
-        id = len(self.association_widgets)
+        id = len(self.rule_widgets)
         hbox.id = id
 
         # Create a text box and add it to the horizontal box
@@ -132,32 +132,32 @@ class MainGui:
 
         # Create a remove button and add it to the horizontal box
         remove_button = Gtk.Button(label="X")
-        remove_button.connect("clicked", self._remove_association, hbox, id)
+        remove_button.connect("clicked", self._remove_rule, hbox, id)
         hbox.pack_start(remove_button, True, True, 0)
 
         # Create a checkbox for referring to groups of objects only
         checkbox = Gtk.CheckButton(label="Groups Label")
         hbox.pack_start(checkbox, True, True, 0)
 
-        self.association_widgets[id] = (label_entry, type_combo, color_button, checkbox)
+        self.rule_widgets[id] = (label_entry, type_combo, color_button, checkbox)
         self.vbox.show_all()
 
-    def _remove_association(self, button, hbox, id):
-        """Removes the specified association"""
+    def _remove_rule(self, button, hbox, id):
+        """Removes the specified rule"""
         self.vbox.remove(hbox)
-        del self.association_widgets[id]
+        del self.rule_widgets[id]
         self.vbox.show_all()
         self.window.show_all()
 
-    def _load_association_dict(self, associations):
-        missing_widgets = len(associations) - len(self.association_widgets)
+    def _load_rule_dict(self, rules):
+        missing_widgets = len(rules) - len(self.rule_widgets)
         if missing_widgets > 0:
             # add more widgets
             for _ in range(missing_widgets):
-                self._add_association_widgets(None)
+                self._add_rule_widgets(None)
 
-        for i, (label, values) in enumerate(associations.items()):
-            widgets = self.association_widgets[i]
+        for i, (label, values) in enumerate(rules.items()):
+            widgets = self.rule_widgets[i]
             widgets[0].get_buffer().set_text(label, len(label))  # the label
             if values[0] is None:
                 widgets[1].set_active(-1)
@@ -170,15 +170,15 @@ class MainGui:
             widgets[2].set_rgba(color)
             widgets[3].set_active(values[2])  # if groups-only
 
-    def get_association_dict(self):
+    def get_rule_dict(self):
         out = {}
-        utils.check_association_labels(self.association_widgets)
+        utils.check_rule_labels(self.rule_widgets)
         for (
             entry,
             combotext,
             colorbutton,
             checkbox,
-        ) in self.association_widgets.values():
+        ) in self.rule_widgets.values():
             out[entry.get_buffer().get_text()] = [
                 combotext.get_active_text(),
                 utils.color_string_to_rgb(colorbutton.get_rgba().to_string()),
@@ -189,23 +189,23 @@ class MainGui:
     def load_config(self, button):
         """Load a config from a JSON file and puts the info in proper widgets"""
         response, file_path = _json_file_chooser(
-            "Load JSON associations", Gtk.FileChooserAction.OPEN, self.window
+            "Load JSON rules", Gtk.FileChooserAction.OPEN, self.window
         )
         if response == Gtk.ResponseType.ACCEPT:
-            # Load associations `out` from a json file
+            # Load rules `out` from a json file
             with open(file_path, "r") as f:
-                associations = json.load(f)
+                rules = json.load(f)
         else:
             return
-        self._load_association_dict(associations)
+        self._load_rule_dict(rules)
 
     def save_config(self, button):
-        """Open a window to save the associations into a JSON file"""
-        out = self.get_association_dict()
+        """Open a window to save the rules into a JSON file"""
+        out = self.get_rule_dict()
 
         # Let the user chose a filename using Gtk.FileChooserNative
         response, file_path = _json_file_chooser(
-            "Save JSON associations", Gtk.FileChooserAction.SAVE, self.window
+            "Save JSON rules", Gtk.FileChooserAction.SAVE, self.window
         )
         if response == Gtk.ResponseType.ACCEPT:
             # Save `out` to a json file
@@ -215,11 +215,11 @@ class MainGui:
     def start(self):
         """Load the main window and the annotation from the cache"""
         self._load_gui()
-        fpath = utils.get_cache_dir() / "associations.json"
+        fpath = utils.get_cache_dir() / "rules.json"
         if fpath.exists():
             with open(fpath, "r") as f:
-                associations = json.load(f)
-                self._load_association_dict(associations)
+                rules = json.load(f)
+                self._load_rule_dict(rules)
         # Run the GTK main loop
         Gtk.main()
 
@@ -228,9 +228,9 @@ class MainGui:
         Save the annotation config to cache and close the main window.
         """
         # Save the config to a file in the cache directory
-        associations = self.get_association_dict()
-        with open(utils.get_cache_dir() / "associations.json", "w") as f:
-            json.dump(associations, f)
+        rules = self.get_rule_dict()
+        with open(utils.get_cache_dir() / "rules.json", "w") as f:
+            json.dump(rules, f)
 
         # Close the main window
         if trigger is None:

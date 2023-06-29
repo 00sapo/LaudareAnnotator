@@ -50,7 +50,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         self.gui.start()
 
     def save_annotations(self, callback=None, args=None):
-        """Export the SVG file itself into the JSON file, using the associations defined
+        """Export the SVG file itself into the JSON file, using the rules defined
         by the widgets and destroy the window"""
         json_data = {}
         all_elements = self.svg.descendants()
@@ -69,7 +69,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             "author": getpass.getuser(),
         }
         json_data["annotations"] = {}
-        for label, (obj, color, isgroup) in self.gui.get_association_dict().items():
+        for label, (obj, color, isgroup) in self.gui.get_rule_dict().items():
             # get all elements of type obj
             inkex_class = self.object_types[obj]
             obj_elements = all_elements.get(inkex_class)

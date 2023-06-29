@@ -54,10 +54,10 @@ def color_string_to_rgb(color):
     return f"rgb({r},{g},{b})"
 
 
-def check_association_labels(associations):
+def check_rule_labels(rules):
     labels = set()
     combinations = set()
-    for label, obj, color, isgroup in associations.values():
+    for label, obj, color, isgroup in rules.values():
         value = label.get_buffer().get_text()
         combination = (
             obj.get_active_text(),
