@@ -1,11 +1,14 @@
 import concurrent.futures
 import datetime
 import getpass
+import warnings
 from pprint import pprint
 
 import gui
 import inkex
 import utils
+
+warnings.filterwarnings("ignore")
 
 
 def to_px(value, unit):
@@ -87,9 +90,9 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                     to_px(image_bbox.width, unit),
                     to_px(image_bbox.height, unit),
                 ),
-                # "href": next(
-                #     v for k, v in image.attrib.items() if k.endswith("href")
-                # ),  # href may be preceeded by {...} # this can be base4 binary encoding!
+                "href": next(
+                    v for k, v in image.attrib.items() if k.endswith("href")
+                ),  # href may be preceeded by {...} # this can be base4 binary encoding!
             },
         }
 
@@ -122,9 +125,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                 )
                 for node in obj_elements_color
             ]
-            for i, future in enumerate(
-                concurrent.futures.as_completed(futures)
-            ):
+            for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 id = obj_elements_color[i].get_id()
                 json_data["annotations"][label][id] = future.result()
 
@@ -170,5 +171,5 @@ class LaudareExtension(inkex.extensions.OutputExtension):
 
 
 if __name__ == "__main__":
-    __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
+    # __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
     LaudareExtension().run()
