@@ -61,17 +61,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         self.gui.set_palette(utils.get_svg_palette(self.svg))
         self.gui.start()
 
-    def save_annotations(self, callback=None, args=None):
-        """Export the SVG file itself into the JSON file, using the rules defined
-        by the widgets and destroy the window"""
-        json_data = {}
-        all_elements = self.svg.descendants()
-
-        all_groups = all_elements.get(inkex.Group)
-        for g in all_groups:
-            # apply transforms to lement, and remove them from groups
-            bake_transforms_recursively(g)
-
+    def fill_info(self, all_elements, json_data):
         image = all_elements.get(inkex.Image)
         if len(image) > 1:
             raise RuntimeError("SVG has multiple images, not supported")
@@ -97,11 +87,59 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                     to_px(image_bbox.width, unit),
                     to_px(image_bbox.height, unit),
                 ),
-                "href": next(
-                    v for k, v in image.attrib.items() if k.endswith("href")
-                ),  # href may be preceeded by {...} # this can be base4 binary encoding!
+                # "href": next(
+                #     v for k, v in image.attrib.items() if k.endswith("href")
+                # ),  # href may be preceeded by {...} # this can be base4 binary encoding!
             },
         }
+
+    def insert_groups(self, all_groups, obj_elements_color, json_data, label):
+        # iterate all groups and selects only those that contain obj with
+        # color
+        for group in all_groups:
+            if group.groupmode == "layer":
+                continue
+            grouped_nodes = [
+                node for node in group.descendants() if node in obj_elements_color
+            ]
+            if len(grouped_nodes) > 1:
+                json_data["annotations"][label][group.get_id()] = node_to_annotation(
+                    group,
+                    children=grouped_nodes,
+                    relative_to=(self._image_x, self._image_y),
+                )
+
+    def insert_elements(self, json_data, label, obj_elements_color):
+        # add the element to the json data
+        # using threads because `node_to_annotation` uses external Inkscape process if
+        # the node is text
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(
+                    node_to_annotation,
+                    node,
+                    relative_to=(self._image_x, self._image_y),
+                )
+                for node in obj_elements_color
+            ]
+            for i, future in enumerate(
+                concurrent.futures.as_completed(futures)
+            ):
+                id = obj_elements_color[i].get_id()
+                json_data["annotations"][label][id] = future.result()
+
+    def save_annotations(self, callback=None, args=None):
+        """Export the SVG file itself into the JSON file, using the rules defined
+        by the widgets and destroy the window"""
+        json_data = {}
+        all_elements = self.svg.descendants()
+
+        all_groups = all_elements.get(inkex.Group)
+        for g in all_groups:
+            # apply transforms to lement, and remove them from groups
+            bake_transforms_recursively(g)
+
+        self.fill_info(all_elements, json_data)
 
         # inserting annotations
         json_data["annotations"] = {}
@@ -121,41 +159,10 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             json_data["annotations"][label] = {}
 
             if not isgroup:
-                # add the element to the json data
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    futures = [
-                        executor.submit(
-                            node_to_annotation,
-                            node,
-                            relative_to=(self._image_x, self._image_y),
-                        )
-                        for node in obj_elements_color
-                    ]
-                    for i, future in enumerate(
-                        concurrent.futures.as_completed(futures)
-                    ):
-                        id = obj_elements_color[i].get_id()
-                        json_data["annotations"][label][id] = future.result()
+                self.insert_elements(json_data, label, obj_elements_color)
             else:
-                # iterate all groups and selects only those that contain obj with
-                # color
-                for group in all_groups:
-                    if group.groupmode == "layer":
-                        continue
-                    grouped_nodes = []
-                    for node in group.descendants():
-                        color_fill = utils.get_node_color(node, "fill")
-                        color_stroke = utils.get_node_color(node, "stroke")
-                        if color in [color_fill, color_stroke]:
-                            grouped_nodes.append(node)
-                    if len(grouped_nodes) > 1:
-                        json_data["annotations"][label][
-                            group.get_id()
-                        ] = node_to_annotation(
-                            group,
-                            children=grouped_nodes,
-                            relative_to=(self._image_x, self._image_y),
-                        )
+                self.insert_groups(all_groups, obj_elements_color, json_data, label)
+
         pprint(json_data)
         if callback is not None:
             callback(*args)
