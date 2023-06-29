@@ -115,7 +115,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         pprint(json_data)
         if callback is not None:
             callback(*args)
-        # self.gui.stop()
+        self.gui.stop()
 
 
 if __name__ == "__main__":
