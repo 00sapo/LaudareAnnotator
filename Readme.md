@@ -10,7 +10,9 @@ as well.
 The plugin stores the bounding boxes of each shape in a JSON file, connecting each
 object to a label according to customizable rules.
 
-!(Screenshot)[./_static/Screenshot-v0.2.png]
+<div style="text-align:center">
+    <img src="./_static/Screenshot-v0.2.png" alt="Screenshot">
+</div>
 
 ## Features
 
