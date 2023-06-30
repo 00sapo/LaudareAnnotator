@@ -2,6 +2,10 @@
 
 This is an Inkscape plugin for annotating images for Computer Vision tasks.
 
+<p align="center">
+    <img src="./_static/Screenshot-v0.2.png" alt="Screenshot">
+</p>
+
 It has been developed in the context of the Laudare ERC project for annotating ancient
 characters to build font in a document augmentation approach. However, I have built it
 with general-purpose annotation tasks in mind, so it is likely useful for other projects
@@ -9,10 +13,6 @@ as well.
 
 The plugin stores the bounding boxes of each shape in a JSON file, connecting each
 object to a label according to customizable rules.
-
-<div style="text-align:center">
-    <img src="./_static/Screenshot-v0.2.png" alt="Screenshot">
-</div>
 
 ## Features
 
