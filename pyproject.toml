@@ -1,6 +1,6 @@
 [project]
 name = "laudareannotator"
-version = "0.1"
+version = "0.2"
 description = "An Inkscape extension to annotate images for computer-vision tasks"
 authors = [
     {name = "Federico Simonetta", email = "federico.simonetta@gssi.it"},

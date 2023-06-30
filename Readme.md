@@ -10,9 +10,11 @@ as well.
 The plugin stores the bounding boxes of each shape in a JSON file, connecting each
 object to a label according to customizable rules.
 
+!(Screenshot)[./_static/Screenshot-v0.2.png]
+
 ## Features
 
-1. Automatic color palette detection
+1. Automatic color palette detection, detecting similar colors as a single label
 2. Exporting and importing rules (each rule connect a combination of shape-color to a
    label)
 3. Ability to assign labels to group of objects and to remember objects labeled inside
@@ -22,16 +24,8 @@ object to a label according to customizable rules.
 6. Supports text, rectangles, paths, and ellipses, but only the bounding boxes and the
    text content are remembered
 7. Remember last used rules
-
-## TODO
-
-1. The plugin performs check of formal correctness of the annotations, but that part can
-   largely be improved
-2. Provide some good general-purpose color palette and tweak the Inkscape UI in order to
-   decrease the probability of errors
-3. Add ability for automatic detection of shapes inside the bounding boxes
-4. Right now, stroke and fill colors are checked in an or fashion: shapes with different
-   color in shape and fill will be labeled in an unpredictable way
+8. Consistent with visible annotations (hidden, transparent, empty shapes/texts are
+   skipped)
 
 ## How to use
 
@@ -46,6 +40,17 @@ object to a label according to customizable rules.
 
 If a window shows up saying that "Inkscape has received additional data" but that "there
 was no error", that is ok.
+
+## TODO
+
+1. Importing annotations into Inkscape for visualizing them is possible and easy
+2. The plugin performs check of formal correctness of the annotations, but that part can
+   largely be improved
+3. Provide some good general-purpose color palette and tweak the Inkscape UI in order to
+   decrease the probability of errors (this would become a full Inkscape config folder)
+4. Add ability for automatic detection of shapes inside the bounding boxes
+5. Right now, stroke and fill colors are checked in an "or" fashion: shapes with different
+   color in shape and fill will be labeled in an unpredictable way
 
 ## Credits
 
