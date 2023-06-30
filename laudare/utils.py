@@ -88,24 +88,64 @@ def get_cache_dir():
     return cache_path
 
 
-def get_node_color(node, name="fill") -> Optional[str]:
-    """Returns the RGB color, without opacity levels. `None` if it is not set."""
-    style_str = node.attrib.get("style", None)
-    if style_str is None:
-        return None
-    style = dict(inkex.Style.parse_str(style_str))
-    color = style.get(name)
-    if color == "none":
-        return None
-    # check that this element really contains something
+def _parse_num(v: str):
+    return float(v) if v else 0
+
+
+def node_can_be_seen(node):
+    """
+    Given a node, return True if it can be seen by the user in Inkscape, False otherwise
+    (e.g. an empty text or a line with stroke-wdth of 0 or completely transparent
+     objects)
+    """
+    if node.style.get("display") == "hidden":
+        return False
+
+    if hasattr(node, "is_visible") and not node.is_visible():
+        return False
+
+    is_filled = (
+        node.style.get("fill") and _parse_num(node.style.get("fill-opacity")) > 0
+    )
+    is_stroked = (
+        node.style.get("stroke")
+        and _parse_num(node.style.get("stroke-width")) > 0
+        and _parse_num(node.style.get("stroke-opacity")) > 0
+    )
+
     if isinstance(node, inkex.TextElement):
-        if node.get_text().replace(" ", "").replace("\t", "") != "":
-            return color_string_to_rgb(color)
+        if node.get_text().replace(" ", "").replace("\t", "") == "":
+            return False
+        elif not is_stroked and not is_filled:
+            return True
     elif isinstance(node, inkex.ShapeElement):
         bbox = node.bounding_box()
-        if bbox is not None and bbox.area > 0:
-            return color_string_to_rgb(color)
-    return None
+        if is_filled and not is_stroked:
+            if bbox is not None and bbox.area == 0:
+                return False
+        elif not is_filled and not is_stroked:
+            return False
+        elif is_filled and is_stroked:
+            return True
+        elif is_stroked and not is_filled:
+            return True
+    return True
+
+
+def get_node_color(node, name="fill") -> Optional[str]:
+    """Returns the RGB color, without opacity levels. `None` if it is not set."""
+    # style_str = node.attrib.get("style", None)
+    # if style_str is None:
+    #     return None
+    # style = dict(inkex.Style.parse_str(style_str))
+    color = node.style.get(name)
+    if color == "none":
+        return None
+
+    if node_can_be_seen(node):
+        return color_string_to_rgb(color)
+    else:
+        return None
 
 
 def get_svg_palette(svg):
