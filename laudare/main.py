@@ -127,7 +127,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             ]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 id = obj_elements_color[i].get_id()
-                json_data["annotations"][label][id] = future.result()
+                json_data["annotations"][label]["elements"][id] = future.result()
 
     def save_annotations(self, callback=None, args=None):
         """Export the SVG file itself into the JSON file, using the rules defined
@@ -154,10 +154,15 @@ class LaudareExtension(inkex.extensions.OutputExtension):
             for node in obj_elements:
                 color_fill = utils.get_node_color(node, "fill")
                 color_stroke = utils.get_node_color(node, "stroke")
-                if color in [color_fill, color_stroke]:
+
+                if utils.match_colors(color, color_fill, color_stroke):
                     obj_elements_color.append(node)
 
-            json_data["annotations"][label] = {}
+            json_data["annotations"][label] = {
+                "color": color,
+                "shape": obj,
+                "elements": {},
+            }
 
             if not isgroup:
                 self.insert_elements(json_data, label, obj_elements_color)
