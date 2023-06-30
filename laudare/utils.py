@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 import inkex
+import numpy as np
 
 SUPPORTED_TYPES = {
     "Text": inkex.TextElement,
@@ -132,6 +133,28 @@ def node_can_be_seen(node):
     return True
 
 
+def match_colors(color_query, *colors, euclidean_th=150):
+    """Return True if `color` is near to one of *colors in an euclidean
+    space"""
+
+    if color_query is None:
+        raise RuntimeError("Color must be in RGB format")
+    if not color_query.startswith("rgb(") or not color_query.endswith(")"):
+        raise RuntimeError("Color must be in RGB format")
+
+    # convert color strings to RGB values
+    color_rgb = np.array([int(c) for c in color_query[4:-1].split(",")])
+
+    for color in colors:
+        if color is not None:
+            c_rgb = np.array([int(c) for c in color[4:-1].split(",")])
+            distance = np.linalg.norm(color_rgb - c_rgb)
+            if distance < euclidean_th:
+                return True
+
+    return False
+
+
 def get_node_color(node, name="fill") -> Optional[str]:
     """Returns the RGB color, without opacity levels. `None` if it is not set."""
     # style_str = node.attrib.get("style", None)
@@ -153,11 +176,11 @@ def get_svg_palette(svg):
     colors = set()
     for node in svg.descendants():
         stroke = get_node_color(node, "stroke")
-        if stroke not in colors and stroke is not None:
+        if stroke is not None and not match_colors(stroke, *colors):
             colors.add(stroke)
 
         fill = get_node_color(node, "fill")
-        if fill not in colors and fill is not None:
+        if fill is not None and not match_colors(fill, *colors):
             colors.add(fill)
 
     return colors
