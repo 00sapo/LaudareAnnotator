@@ -6,7 +6,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-import utils
+from . import utils
 from gi.repository import Gdk, Gtk
 
 
@@ -21,14 +21,56 @@ def _colors_to_gdk(colors):
     return ret
 
 
-def _json_file_chooser(title, action, window):
-    dialog = Gtk.FileChooserNative(title=title, action=action, transient_for=window)
+def _json_file_chooser(title, action, window=None, buttons=None, multiple_files=False):
+    """
+    Displays a file chooser dialog for selecting JSON files.
+
+    Args:
+        title (str): The title of the file chooser dialog.
+        action (Gtk.FileChooserAction): The action to be performed by the file
+            chooser dialog.
+        window (Gtk.Window): The parent window for the file chooser dialog.
+            Defaults to None.
+        buttons (list): A list of button labels to be displayed in the file
+            chooser dialog. Defaults to None.
+        multiple_files (bool): Whether to allow multiple file selection.
+            Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the response code and the selected file path(s).
+            - response (Gtk.ResponseType): The response code indicating the
+              user's action.
+            - file_path (str or list): The path(s) of the selected file(s).
+
+    Example usage:
+        response, file_path = _json_file_chooser("Select JSON File",
+                                                 Gtk.FileChooserAction.OPEN)
+        if response == Gtk.ResponseType.OK:
+            # Process the selected file(s)
+            if isinstance(file_path, list):
+                for path in file_path:
+                    process_file(path)
+            else:
+                process_file(file_path)
+        else:
+            # User cancelled the selection
+            handle_cancel()
+
+    """
+    dialog = Gtk.FileChooserNative(
+        title=title, action=action, transient_for=window, buttons=buttons
+    )
+    if multiple_files:
+        dialog.set_select_multiple(True)
     filter_json = Gtk.FileFilter()
     filter_json.set_name("JSON files")
     filter_json.add_mime_type("application/json")
     dialog.add_filter(filter_json)
     response = dialog.run()
-    file_path = dialog.get_filename()
+    if multiple_files:
+        file_path = dialog.get_filenames()
+    else:
+        file_path = dialog.get_filename()
     dialog.destroy()
     return response, file_path
 
@@ -189,7 +231,7 @@ class MainGui:
     def load_config(self, button):
         """Load a config from a JSON file and puts the info in proper widgets"""
         response, file_path = _json_file_chooser(
-            "Load JSON rules", Gtk.FileChooserAction.OPEN, self.window
+            "Load JSON rules", Gtk.FileChooserAction.OPEN, window=self.window
         )
         if response == Gtk.ResponseType.ACCEPT:
             # Load rules `out` from a json file
@@ -205,7 +247,7 @@ class MainGui:
 
         # Let the user chose a filename using Gtk.FileChooserNative
         response, file_path = _json_file_chooser(
-            "Save JSON rules", Gtk.FileChooserAction.SAVE, self.window
+            "Save JSON rules", Gtk.FileChooserAction.SAVE, window=self.window
         )
         if response == Gtk.ResponseType.ACCEPT:
             # Save `out` to a json file

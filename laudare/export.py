@@ -4,16 +4,18 @@ import getpass
 import warnings
 from pprint import pprint
 
-import gui
 import inkex
-import utils
+from inkex import units
+
+from . import gui
+from . import utils
 
 warnings.filterwarnings("ignore")
 
 
 def to_px(value, unit):
     if unit != "px":
-        return inkex.utils.convert_unit(value, "px", unit)
+        return units.convert_unit(value, "px", unit)
     else:
         return value
 
@@ -47,7 +49,7 @@ def node_to_annotation(node, children=[], relative_to=(0, 0)):
     }
 
 
-class LaudareExtension(inkex.extensions.OutputExtension):
+class LaudareExport(inkex.extensions.OutputExtension):
     def __init__(self) -> None:
         super().__init__()
         self.object_types = utils.SUPPORTED_TYPES
@@ -174,8 +176,3 @@ class LaudareExtension(inkex.extensions.OutputExtension):
         if callback is not None:
             callback(*args)
         self.gui.stop()
-
-
-if __name__ == "__main__":
-    # __import__("sys").argv.append("~/Laudare/Federico only/mytests/Cortona1.svg")
-    LaudareExtension().run()
