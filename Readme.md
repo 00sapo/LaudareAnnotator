@@ -43,6 +43,85 @@ object to a label according to customizable rules.
 If a window shows up saying that "Inkscape has received additional data" but that "there
 was no error", that is ok.
 
+## JSON format
+
+This an example of JSON file created by the plugin:
+
+```python
+{
+    'info': {
+        'author': 'sapo',
+        'date': '2023-06-30T15:04:02.644951',
+        'image': {
+            'href': 'data:image/png;base64,xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' # or the link to the image if you link it in inkscape instead of embedding it
+            'position': (54.490620000000035, 87.261764, 499.72580000000005, 651.9024) # position of the image in the viewport: x, y, h, w
+        },
+        'unit': 'px' # unit used for the dimensions, here for reference, but it is and will always be in 'px', meaning "pixel"
+    },
+    'annotations': {
+        'Label 0': {
+            'shape': 'Text', # the matched type of shape, one of Text, Path, Rectangle, Ellipse
+            'color': 'rgb(0,0,0)', # this is always in "rgb(x, y, z)" format
+            'elements': {}, # this will be filled with elements tagged with "Label 0"
+            'g1017': { # other fields are groups, referring to other elements
+                'children': ['text3737', 'text3741'], # the list of elements in the group
+                'text': None, # the text included if this was a Text, but it's a group...
+                'x': 138.93092371469996, # bounding box of this group
+                'y': 191.55871048500003,
+                'h': 12.366090832999987,
+                'w': 9.363188497400017,
+            },
+            'g4177': {
+                'children': ['text3773', 'text3777'],
+                'h': 13.506762920920039,
+                'text': None,
+                'w': 10.093336167100006,
+                'x': 108.17317431249995,
+                'y': 191.12298972147997},
+                'shape': 'Text'
+            },
+        'Label 1': {
+            'color': 'rgb(0,0,0)',
+            'shape': 'Text',
+            'elements': {
+                'text3737': { # this is one of the children listed in the above groups!
+                    'text': 'm', # the text in this element, this is actually only one letter!
+                    'children': [],
+                    'h': 20.452499514192425,
+                    'w': 20.89529950367458,
+                    'x': 189.1733742122565,
+                    'y': 173.6172298033492
+                },
+                'text3741': {
+                    'children': [],
+                    'h': 20.82709950529454,
+                    'text': 'e',
+                    'w': 12.444799704399031,
+                    'x': 251.74837272591446,
+                    'y': 175.12722976748225
+                },
+                'text3773': {
+                    'children': [],
+                    'h': 24.32199942228027,
+                    'text': 'l',
+                    'w': 5.318169873677675,
+                    'x': 144.06737528365792,
+                    'y': 167.23722995489314
+                },
+                'text3777': {
+                    'children': [],
+                    'h': 25.05989940475297,
+                    'text': 't',
+                    'w': 8.776559791530644,
+                    'x': 230.9413732201425,
+                     'y': 169.89122989185276
+                }
+            }  # closing "elements"
+        }  # Closing "Label 1"
+    }  # Closing "Annotations"
+}  # Closing root
+```
+
 ## TODO
 
 1. Importing annotations into Inkscape for visualizing them is possible and easy
