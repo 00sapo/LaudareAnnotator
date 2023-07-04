@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Laudare Extension Counts</name>
+  <id>org.inkscape.effects.laudare</id>
+  <effect implements-custom-gui="true" needs-live-preview="false">
+    <extension>.json</extension>
+    <mimetype>application/json</mimetype>
+    <filetypename>Laudare JSON (*.json)</filetypename>
+    <filetypetooltip>Laudare custom annotation format in JSON</filetypetooltip>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">main_count.py</command>
+  </script>
+</inkscape-extension>
+

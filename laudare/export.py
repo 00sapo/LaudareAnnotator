@@ -1,3 +1,4 @@
+import json
 import concurrent.futures
 import datetime
 import getpass
@@ -172,7 +173,8 @@ class LaudareExport(inkex.extensions.OutputExtension):
             else:
                 self.insert_groups(all_groups, obj_elements_color, json_data, label)
 
-        pprint(json_data)
+        json_string = json.dumps(json_data)
+        print(json_string)
         if callback is not None:
             callback(*args)
         self.gui.stop()

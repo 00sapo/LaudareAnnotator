@@ -21,7 +21,7 @@ def _colors_to_gdk(colors):
     return ret
 
 
-def _json_file_chooser(title, action, window=None, buttons=None, multiple_files=False):
+def _json_file_chooser(title, action, *, window=None, multiple_files=False):
     """
     Displays a file chooser dialog for selecting JSON files.
 
@@ -31,8 +31,6 @@ def _json_file_chooser(title, action, window=None, buttons=None, multiple_files=
             chooser dialog.
         window (Gtk.Window): The parent window for the file chooser dialog.
             Defaults to None.
-        buttons (list): A list of button labels to be displayed in the file
-            chooser dialog. Defaults to None.
         multiple_files (bool): Whether to allow multiple file selection.
             Defaults to False.
 
@@ -58,7 +56,7 @@ def _json_file_chooser(title, action, window=None, buttons=None, multiple_files=
 
     """
     dialog = Gtk.FileChooserNative(
-        title=title, action=action, transient_for=window, buttons=buttons
+        title=title, action=action, transient_for=window
     )
     if multiple_files:
         dialog.set_select_multiple(True)
