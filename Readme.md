@@ -28,6 +28,8 @@ object to a label according to customizable rules.
 7. Remember last used rules
 8. Consistent with visible annotations (hidden, transparent, empty shapes/texts are
    skipped)
+9. Further command to compute statistics about the annotations ("Extensions" > "Laudare
+   Extension Counts")
 
 ## How to use
 
