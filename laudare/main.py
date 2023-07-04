@@ -106,7 +106,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                 node for node in group.descendants() if node in obj_elements_color
             ]
             if len(grouped_nodes) > 1:
-                json_data["annotations"][label][group.get_id()] = node_to_annotation(
+                json_data["annotations"][label]["groups"][group.get_id()] = node_to_annotation(
                     group,
                     children=grouped_nodes,
                     relative_to=(self._image_x, self._image_y),
@@ -162,6 +162,7 @@ class LaudareExtension(inkex.extensions.OutputExtension):
                 "color": color,
                 "shape": obj,
                 "elements": {},
+                "groups": {}
             }
 
             if not isgroup:
