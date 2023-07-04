@@ -66,7 +66,7 @@ This an example of JSON file created by the plugin:
             'g1017': { # other fields are groups, referring to other elements
                 'children': ['text3737', 'text3741'], # the list of elements in the group
                 'text': None, # the text included if this was a Text, but it's a group...
-                'x': 138.93092371469996, # bounding box of this group
+                'x': 138.93092371469996, # bounding box of this group with reference to the image, not to the viewport: 0, 0, h, w  means the top-left corner is in the top-left corner of the image!
                 'y': 191.55871048500003,
                 'h': 12.366090832999987,
                 'w': 9.363188497400017,
