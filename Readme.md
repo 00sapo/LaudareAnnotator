@@ -31,7 +31,9 @@ object to a label according to customizable rules.
 
 ## How to use
 
-1. Download the Zip file and extract it into the directory listed at `Edit` > `Preferences` > `System: User extensions`. After a restart of Inkscape, the new extension will be available.
+1. Download the Zip file and extract it into the directory listed at `Edit` >
+   `Preferences` > `System: User extensions`. After a restart of Inkscape, the new
+   extension will be available.
 2. Define a color palette with a little number of colors
 3. Use shaes and text to annotate images
 4. Use `File` > `Save As` and look for "Laudare JSON" format
@@ -53,39 +55,53 @@ This an example of JSON file created by the plugin:
         'author': 'sapo',
         'date': '2023-06-30T15:04:02.644951',
         'image': {
-            'href': 'data:image/png;base64,xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' # or the link to the image if you link it in inkscape instead of embedding it
-            'position': (54.490620000000035, 87.261764, 499.72580000000005, 651.9024) # position of the image in the viewport: x, y, h, w
+             # base64 encoding or the link to the image if you link it in inkscape
+             # instead of embedding it
+            'href': 'data:image/png;base64,xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            # position of the image in the viewport: x, y, h, w
+            'position': (54.490620000000035, 87.261764, 499.72580000000005, 651.9024)
         },
-        'unit': 'px' # unit used for the dimensions, here for reference, but it is and will always be in 'px', meaning "pixel"
+         # unit used for the dimensions, here for reference, but it is and will always
+         # be in 'px', meaning "pixel"
+        'unit': 'px'
     },
     'annotations': {
         'Label 0': {
             'shape': 'Text', # the matched type of shape, one of Text, Path, Rectangle, Ellipse
             'color': 'rgb(0,0,0)', # this is always in "rgb(x, y, z)" format
             'elements': {}, # this will be filled with elements tagged with "Label 0"
-            'g1017': { # other fields are groups, referring to other elements
-                'children': ['text3737', 'text3741'], # the list of elements in the group
-                'text': None, # the text included if this was a Text, but it's a group...
-                'x': 138.93092371469996, # bounding box of this group with reference to the image, not to the viewport: 0, 0, h, w  means the top-left corner is in the top-left corner of the image!
-                'y': 191.55871048500003,
-                'h': 12.366090832999987,
-                'w': 9.363188497400017,
-            },
-            'g4177': {
-                'children': ['text3773', 'text3777'],
-                'h': 13.506762920920039,
-                'text': None,
-                'w': 10.093336167100006,
-                'x': 108.17317431249995,
-                'y': 191.12298972147997},
-                'shape': 'Text'
-            },
+            'groups': {  # map of groups
+                'g1017': {
+                     # the list of elements in the group
+                    'children': ['text3737', 'text3741'],
+                     # the text included if this was a Text, but it's a group...
+                    'text': None,
+                     # bounding box of this group with reference to the image, not to
+                     # the viewport: 0, 0, h, w  means the top-left corner is in the
+                     # top-left corner of the image!
+                    'x': 138.93092371469996,
+                    'y': 191.55871048500003,
+                    'h': 12.366090832999987,
+                    'w': 9.363188497400017,
+                },
+                'g4177': {
+                    'children': ['text3773', 'text3777'],
+                    'h': 13.506762920920039,
+                    'text': None,
+                    'w': 10.093336167100006,
+                    'x': 108.17317431249995,
+                    'y': 191.12298972147997},
+                    'shape': 'Text'
+                }
+            }
         'Label 1': {
             'color': 'rgb(0,0,0)',
             'shape': 'Text',
             'elements': {
-                'text3737': { # this is one of the children listed in the above groups!
-                    'text': 'm', # the text in this element, this is actually only one letter!
+                 # this is one of the children listed in the above groups!
+                'text3737': {
+                     # the text in this element, in this case, it's actually only one letter!
+                    'text': 'm',
                     'children': [],
                     'h': 20.452499514192425,
                     'w': 20.89529950367458,
