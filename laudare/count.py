@@ -19,13 +19,29 @@ class MyDialog(Gtk.Dialog):
         )  # Sort items alphabetically by key
 
         Gtk.Dialog.__init__(
-            self, title="Counts Dialog", transient_for=parent, flags=0,
+            self,
+            title="Counts Dialog",
+            transient_for=parent,
+            flags=0,
         )
         self.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
 
         self.set_default_size(250, 200)
 
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.get_content_area().add(scrolled_window)
+
+        # Set the size of the scrolled window to match the dialog
+        self.connect(
+            "size-allocate",
+            lambda widget, allocation: scrolled_window.set_size_request(
+                allocation.width, allocation.height
+            ),
+        )
+
         grid = Gtk.Grid(column_homogeneous=True, column_spacing=10)
+        scrolled_window.add(grid)
 
         # Create a label for each string and its corresponding count
         for string, count in sorted_counts:
@@ -33,7 +49,7 @@ class MyDialog(Gtk.Dialog):
             label.set_xalign(0)  # Align label text to the left
             label.set_yalign(0.5)  # Align label text to the left
             label.set_hexpand(True)  # Expand label horizontally
-            label.set_margin_end(50)  # Add margin to the right of the label
+            label.set_margin_end(10)  # Add margin to the right of the label
             grid.attach(label, 0, len(grid.get_children()), 1, 1)
 
             count_label = Gtk.Label(label=str(count))
@@ -42,7 +58,8 @@ class MyDialog(Gtk.Dialog):
             count_label.set_margin_start(5)  # Add margin to the left of the count label
             grid.attach(count_label, 1, len(grid.get_children()) - 1, 1, 1)
 
-        self.get_content_area().add(grid)
+            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            grid.attach(separator, 0, len(grid.get_children()), 2, 1)
 
         self.show_all()
 
