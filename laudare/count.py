@@ -1,13 +1,15 @@
 """A module for counting the annotations from a set of files."""
 
 import json
+import re
 from collections import defaultdict
 
 import gi
 import inkex
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gtk
 
 from . import gui
 
@@ -26,7 +28,7 @@ class MyDialog(Gtk.Dialog):
         )
         self.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
 
-        self.set_default_size(250, 200)
+        self.set_default_size(250, 400)
 
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -44,18 +46,30 @@ class MyDialog(Gtk.Dialog):
         scrolled_window.add(grid)
 
         # Create a label for each string and its corresponding count
+        pattern = re.compile(r"\s+")
         for string, count in sorted_counts:
+            string = pattern.sub("", string)
             label = Gtk.Label(label=f"{string}")
             label.set_xalign(0)  # Align label text to the left
-            label.set_yalign(0.5)  # Align label text to the left
+            label.set_yalign(0.5)
             label.set_hexpand(True)  # Expand label horizontally
-            label.set_margin_end(10)  # Add margin to the right of the label
-            grid.attach(label, 0, len(grid.get_children()), 1, 1)
+            # label.set_margin_end(10)  # Add margin to the right of the label
 
             count_label = Gtk.Label(label=str(count))
             count_label.set_xalign(1)  # Align count text to the right
-            count_label.set_yalign(0.5)  # Align count text to the right
-            count_label.set_margin_start(5)  # Add margin to the left of the count label
+            count_label.set_yalign(0.5)
+            # count_label.set_margin_start(5)  # Add margin to the left of the count label
+
+            # changing colors
+            if len(grid.get_children()) % 2 == 0:
+                label.override_background_color(
+                    Gtk.StateFlags.NORMAL, Gdk.RGBA(0.9, 0.9, 0.9, 1)
+                )
+                count_label.override_background_color(
+                    Gtk.StateFlags.NORMAL, Gdk.RGBA(0.9, 0.9, 0.9, 1)
+                )
+
+            grid.attach(label, 0, len(grid.get_children()), 1, 1)
             grid.attach(count_label, 1, len(grid.get_children()) - 1, 1, 1)
 
             separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
