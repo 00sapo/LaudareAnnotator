@@ -13,6 +13,9 @@ SUPPORTED_TYPES = {
     "Rectangle": inkex.Rectangle,
 }
 
+# patch TextElement to retrieve nested tspans
+inkex.TextElement.tspans = lambda self: self.findall('.//svg:tspan')
+
 
 def color_string_to_rgb(color):
     """
@@ -165,6 +168,8 @@ def get_node_color(node, name="fill") -> Optional[str]:
     if color == "none":
         return None
 
+    if node.get_id() == "text423":
+        pass
     if node_can_be_seen(node):
         return color_string_to_rgb(color)
     else:
