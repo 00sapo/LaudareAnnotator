@@ -254,25 +254,54 @@ class MainGui:
 
     def start(self):
         """Load the main window and the annotation from the cache"""
-        self._load_gui()
-        fpath = utils.get_cache_dir() / "rules.json"
-        if fpath.exists():
-            with open(fpath, "r") as f:
-                rules = json.load(f)
-                self._load_rule_dict(rules)
-        # Run the GTK main loop
-        Gtk.main()
+        try:
+            self._load_gui()
+            fpath = utils.get_cache_dir() / "rules.json"
+            if fpath.exists():
+                with open(fpath, "r") as f:
+                    rules = json.load(f)
+                    self._load_rule_dict(rules)
+            # Run the GTK main loop
+            Gtk.main()
+        except Exception as e:
+            show_exception_dialog(e)
 
     def stop(self, trigger=None):
         """
         Save the annotation config to cache and close the main window.
         """
-        # Save the config to a file in the cache directory
-        rules = self.get_rule_dict()
-        with open(utils.get_cache_dir() / "rules.json", "w") as f:
-            json.dump(rules, f)
+        try:
+            # Save the config to a file in the cache directory
+            rules = self.get_rule_dict()
+            with open(utils.get_cache_dir() / "rules.json", "w") as f:
+                json.dump(rules, f)
 
-        # Close the main window
-        if trigger is None:
-            trigger = self.window
-        Gtk.main_quit(trigger)
+            # Close the main window
+            if trigger is None:
+                trigger = self.window
+            Gtk.main_quit(trigger)
+        except Exception as e:
+            show_exception_dialog(e)
+
+
+def show_exception_dialog(e: Exception):
+    """
+    Shows a Gtk dialog with the exception message and on close kills the main GUI.
+
+    Args:
+        e (Exception): The exception object.
+
+    Returns:
+        None
+    """
+    dialog = Gtk.MessageDialog(
+        transient_for=None,
+        flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+        message_type=Gtk.MessageType.ERROR,
+        buttons=Gtk.ButtonsType.CLOSE,
+        text=str(e)
+    )
+    dialog.set_title("Exception Dialog")
+    dialog.run()
+    dialog.connect("destroy", Gtk.main_quit)
+    dialog.connect("response", Gtk.main_quit)

@@ -157,47 +157,50 @@ class LaudareExport(inkex.extensions.OutputExtension):
     def save_annotations(self, callback=None, args=None):
         """Export the SVG file itself into the JSON file, using the rules defined
         by the widgets and destroy the window"""
-        json_data = {}
-        all_elements = self.svg.descendants()
-        self.text_bboxes = get_text_element_bounding_box(self.svg)
+        try:
+            json_data = {}
+            all_elements = self.svg.descendants()
+            self.text_bboxes = get_text_element_bounding_box(self.svg)
 
-        all_groups = all_elements.get(inkex.Group)
-        for g in all_groups:
-            # apply transforms to lement, and remove them from groups
-            bake_transforms_recursively(g)
+            all_groups = all_elements.get(inkex.Group)
+            for g in all_groups:
+                # apply transforms to lement, and remove them from groups
+                bake_transforms_recursively(g)
 
-        self.fill_info(all_elements, json_data)
+            self.fill_info(all_elements, json_data)
 
-        # inserting annotations
-        json_data["annotations"] = {}
-        for label, (obj, color, isgroup) in self.gui.get_rule_dict().items():
-            # get all elements of type obj
-            inkex_class = self.object_types[obj]
-            obj_elements = all_elements.get(inkex_class)
+            # inserting annotations
+            json_data["annotations"] = {}
+            for label, (obj, color, isgroup) in self.gui.get_rule_dict().items():
+                # get all elements of type obj
+                inkex_class = self.object_types[obj]
+                obj_elements = all_elements.get(inkex_class)
 
-            # get only elements with this color in stroke *or* fill
-            obj_elements_color = []
-            for node in obj_elements:
-                color_fill = utils.get_node_color(node, "fill")
-                color_stroke = utils.get_node_color(node, "stroke")
+                # get only elements with this color in stroke *or* fill
+                obj_elements_color = []
+                for node in obj_elements:
+                    color_fill = utils.get_node_color(node, "fill")
+                    color_stroke = utils.get_node_color(node, "stroke")
 
-                if utils.match_colors(color, color_fill, color_stroke):
-                    obj_elements_color.append(node)
+                    if utils.match_colors(color, color_fill, color_stroke):
+                        obj_elements_color.append(node)
 
-            json_data["annotations"][label] = {
-                "color": color,
-                "shape": obj,
-                "elements": {},
-                "groups": {},
-            }
+                json_data["annotations"][label] = {
+                    "color": color,
+                    "shape": obj,
+                    "elements": {},
+                    "groups": {},
+                }
 
-            if not isgroup:
-                self.insert_elements(json_data, label, obj_elements_color)
-            else:
-                self.insert_groups(all_groups, obj_elements_color, json_data, label)
+                if not isgroup:
+                    self.insert_elements(json_data, label, obj_elements_color)
+                else:
+                    self.insert_groups(all_groups, obj_elements_color, json_data, label)
 
-        json_string = json.dumps(json_data)
-        print(json_string)
-        if callback is not None:
-            callback(*args)
-        self.gui.stop()
+            json_string = json.dumps(json_data)
+            print(json_string)
+            if callback is not None:
+                callback(*args)
+            self.gui.stop()
+        except Exception as e:
+            gui.show_exception_dialog(e)
