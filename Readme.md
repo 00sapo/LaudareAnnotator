@@ -132,7 +132,7 @@ This an example of JSON file created by the plugin:
                     "text": "t",
                     "w": 8.776559791530644,
                     "x": 230.9413732201425,
-                     "y": 169.89122989185276
+                    "y": 169.89122989185276
                 }
             }  # closing "elements"
         }  # Closing "Label 1"
