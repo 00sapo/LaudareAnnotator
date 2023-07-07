@@ -1,15 +1,16 @@
-import json
 import concurrent.futures
 import datetime
 import getpass
+import json
 import warnings
-from pprint import pprint
+from tempfile import TemporaryDirectory
 
 import inkex
 from inkex import units
+from inkex.command import inkscape, write_svg
+from inkex.transforms import BoundingBox
 
-from . import gui
-from . import utils
+from . import gui, utils
 
 warnings.filterwarnings("ignore")
 
@@ -35,9 +36,11 @@ def bake_transforms_recursively(group, apply_to_paths=True):
     group.transform = None
 
 
-def node_to_annotation(node, children=[], relative_to=(0, 0)):
+def node_to_annotation(
+    node, children=[], relative_to=(0, 0), text_bboxes: dict[str, BoundingBox] = {}
+):
     if node.tag_name == "text":
-        bbox = node.get_inkscape_bbox()  # slow, this is calling inkscape command!
+        bbox = text_bboxes[node.get_id()]
     else:
         bbox = node.bounding_box()
     return {
@@ -48,6 +51,30 @@ def node_to_annotation(node, children=[], relative_to=(0, 0)):
         "text": node.get_text() if node.tag_name == "text" else None,
         "children": [c.get_id() for c in children],
     }
+
+
+def get_text_element_bounding_box(svg):
+    """Executes an external call to Inkscape and queries all the bounding boxes of all
+    the text elements. Returns a dict with keys the text elements ids starting with `#`
+    and with values a `BoundingBox` object"""
+
+    outmap = {}
+    with TemporaryDirectory(prefix="inkscape-command") as tmpdir:
+        svg_file = write_svg(svg, tmpdir, "input.svg")
+        out = inkscape(svg_file, actions="select-by-element:text;query-all")
+
+        for line in out.strip().split("\n"):
+            elements = line.split(",")
+            element_id = elements[0]
+            bbox = BoundingBox.new_xywh(
+                float(elements[1]),
+                float(elements[2]),
+                float(elements[3]),
+                float(elements[4]),
+            )
+            outmap[element_id] = bbox
+
+    return outmap
 
 
 class LaudareExport(inkex.extensions.OutputExtension):
@@ -109,7 +136,9 @@ class LaudareExport(inkex.extensions.OutputExtension):
                 node for node in group.descendants() if node in obj_elements_color
             ]
             if len(grouped_nodes) > 1:
-                json_data["annotations"][label]["groups"][group.get_id()] = node_to_annotation(
+                json_data["annotations"][label]["groups"][
+                    group.get_id()
+                ] = node_to_annotation(
                     group,
                     children=grouped_nodes,
                     relative_to=(self._image_x, self._image_y),
@@ -117,26 +146,20 @@ class LaudareExport(inkex.extensions.OutputExtension):
 
     def insert_elements(self, json_data, label, obj_elements_color):
         # add the element to the json data
-        # using threads because `node_to_annotation` uses external Inkscape process if
-        # the node is text
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(
-                    node_to_annotation,
-                    node,
-                    relative_to=(self._image_x, self._image_y),
-                )
-                for node in obj_elements_color
-            ]
-            for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                id = obj_elements_color[i].get_id()
-                json_data["annotations"][label]["elements"][id] = future.result()
+        for node in obj_elements_color:
+            id = node.get_id()
+            json_data["annotations"][label]["elements"][id] = node_to_annotation(
+                node,
+                relative_to=(self._image_x, self._image_y),
+                text_bboxes=self.text_bboxes,
+            )
 
     def save_annotations(self, callback=None, args=None):
         """Export the SVG file itself into the JSON file, using the rules defined
         by the widgets and destroy the window"""
         json_data = {}
         all_elements = self.svg.descendants()
+        self.text_bboxes = get_text_element_bounding_box(self.svg)
 
         all_groups = all_elements.get(inkex.Group)
         for g in all_groups:
@@ -165,7 +188,7 @@ class LaudareExport(inkex.extensions.OutputExtension):
                 "color": color,
                 "shape": obj,
                 "elements": {},
-                "groups": {}
+                "groups": {},
             }
 
             if not isgroup:
