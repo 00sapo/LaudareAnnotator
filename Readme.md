@@ -33,6 +33,8 @@ object to a label according to customizable rules.
 
 ## How to use
 
+**N.B. Due to a [bug in Inkscape 1.3](https://gitlab.com/inkscape/inbox/-/issues/9143), it is recommended the use of Inkscape <1.3** 
+
 1. Download the Zip file and extract it into the directory listed at `Edit` >
    `Preferences` > `System: User extensions`. After a restart of Inkscape, the new
    extension will be available.
