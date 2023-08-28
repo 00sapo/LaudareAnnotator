@@ -64,7 +64,11 @@ def get_text_element_bounding_box(svg):
         out = inkscape(svg_file, actions="select-by-element:text;query-all")
 
         for line in out.strip().split("\n"):
+            if line == "":
+                continue
             elements = line.split(",")
+            if len(elements) != 5:
+                print("Error parsing line:", line + "%", file=__import__("sys").stderr)
             element_id = elements[0]
             bbox = BoundingBox.new_xywh(
                 float(elements[1]),
@@ -158,6 +162,7 @@ class LaudareExport(inkex.extensions.OutputExtension):
         """Export the SVG file itself into the JSON file, using the rules defined
         by the widgets and destroy the window"""
         try:
+
             json_data = {}
             all_elements = self.svg.descendants()
             self.text_bboxes = get_text_element_bounding_box(self.svg)
@@ -203,4 +208,8 @@ class LaudareExport(inkex.extensions.OutputExtension):
                 callback(*args)
             self.gui.stop()
         except Exception as e:
+            # print stacktrace to stderr
+            import traceback
+            print(traceback.format_exc(), file=__import__("sys").stderr)
+            # show the exception in a dialog
             gui.show_exception_dialog(e)

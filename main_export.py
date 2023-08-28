@@ -1,4 +1,4 @@
 if __name__ == "__main__":
-    # __import__('sys').argv.append("~/Downloads/Telegram Desktop/Cortonese_4_1_1.svg")
+    __import__('sys').argv.append("~/Downloads/Arsenal_8521_c_4r.svg")
     from laudare import export
     export.LaudareExport().run()
